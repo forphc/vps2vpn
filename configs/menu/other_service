@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ ! -e /usr/local/sbin/base ]] || [[ ! -e /usr/local/sbin/menu ]] || [[ ! -e /usr/local/sbin/auto_reboot ]]; then
+if [[ ! -e /usr/local/sbin/base ]] || [[ ! -e /usr/local/sbin/menu ]]; then
 	exit 1
 else
 	source /usr/local/sbin/base
