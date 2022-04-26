@@ -1,0 +1,36 @@
+[INCLUDES]
+
+before = paths-debian.conf
+
+[DEFAULT]
+
+ignoreip = 127.0.0.1/8
+bantime  = 3600
+findtime  = 600
+maxretry = 5
+backend = auto
+usedns = warn
+enabled = true
+mode = normal
+protocol = tcp
+chain = <known/chain>
+port = 0:65535
+filter = %(__name__)s[mode=%(mode)s]
+banaction = iptables-multiport
+banaction_allports = iptables-allports
+action_ = %(banaction)s[port="%(port)s", protocol="%(protocol)s", chain="%(chain)s"]
+action = %(action_)s
+
+#
+# JAILS
+#
+
+[sshd]
+port = 22
+logpath = %(sshd_log)s
+backend = %(sshd_backend)s
+
+[webmin-auth]
+port = 10000
+logpath = %(syslog_authpriv)s
+backend = %(syslog_backend)s

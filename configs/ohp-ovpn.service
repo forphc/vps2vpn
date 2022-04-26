@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenHTTP Puncher Server (OpenVPN)
+Wants=network.target
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/ohpserver -port OHP_PORT_OVPN -proxy 127.0.0.1:ZIPROXY_PORT -tunnel 127.0.0.1:OVPN_TCP_PORT
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

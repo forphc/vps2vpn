@@ -1,0 +1,54 @@
+#! /bin/bash
+
+echo "Removing script, please wait..."
+installed="apache2 dropbear stunnel4 squid ws-ssh.service ws-stunnel.service ws-ovpn.service openvpn-server@server_tcp.service openvpn-server@server_udp.service badvpn-udpgw.service webmin fail2ban"
+for service in $installed
+do
+	systemctl stop "$service" && sleep 0.5
+done
+
+rm -f /etc/stunnel/*
+rm -rf /etc/openvpn/client
+pushd /usr/local/sbin/
+rm -f menu.zip startnoload back edit_banner menu ports_show remove_script run_speedtest serv_status user_create user_delete user_show
+popd
+rm -f /etc/profile.d/login.sh
+rm -f /etc/banner
+rm -f /usr/local/bin/ws.py
+pushd /lib/systemd/system/
+rm -f ws-ssh.service ws-stunnel.service ws-ovpn.service badvpn-udpgw.service
+popd
+rm -f /usr/local/bin/badvpn-udpgw
+rm -rf /var/www/openvpn/*
+rm -rf /etc/phc
+rm -f /etc/iptables/rules.v4
+crontab -r
+
+pack="apache2 stunnel4 squid openvpn webmin fail2ban"
+apt remove dropbear -y
+for package in $pack
+do
+	apt remove -y "$package"
+	apt purge -y "$package"
+done
+
+systemctl daemon-reload
+apt update && apt autoremove --fix-missing -y -f && apt upgrade -y
+
+#Clear iptables
+iptables -P INPUT ACCEPT
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD ACCEPT
+iptables -t mangle -F
+iptables -t mangle -X
+iptables -t nat -F
+iptables -t nat -X
+iptables -t filter -F
+iptables -t filter -X
+iptables -F
+iptables -X
+
+cd ~
+read -n 1 -s -r -p "Done, reboot your system now, press any key to proceed"
+rm -f /tmp/remove_script.sh
+reboot
