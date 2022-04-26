@@ -1,0 +1,45 @@
+#!/bin/bash
+source /usr/local/sbin/base
+
+_title2
+if [[ -z $( (awk -F: '$3>=1000 && $3<65534 {print $7}' | grep -v "/bin/bash") </etc/passwd ) ]]; then
+	echo -e "${yellow} No existing user ${color_off}"
+	sleep 2
+	manage_user
+else
+	rm_tmp
+	(awk -F: '$3>=1000 && $3<65534 {print $1,$3,$7}' | grep -v "/bin/bash") < /etc/passwd > $HOME/list.txt
+	while IFS= read -r LINE; do
+		NAME=$(echo "$LINE" | cut -d' ' -f1)
+		ID=$(echo "$LINE" | cut -d' ' -f2)
+		EXP=$(chage -l ${NAME} | grep -i 'account expires' | awk -F': ' '{print $2}')
+		LAST_SSH=$( (grep -i ssh | grep -i 'accepted' | grep -w "$NAME" | grep -oP '(?<=port )[^ ]*' | tail -1) </var/log/auth.log)
+		LAST_DROPBEAR=$( (grep -i dropbear | grep -i "auth succeeded" | grep -w "$NAME" | grep -oP '(?<=from )[^ ]*' | cut -d: -f2 | tail -1) </var/log/auth.log )
+		while :; do
+			if [[ $(grep -wo "$NAME" /var/log/openvpn/status_udp.log | head -1) = "$NAME" ]]; then
+				STATUS="online"
+				break
+			elif [[ $(grep -wo "$NAME" /var/log/openvpn/status_tcp.log | head -1) = "$NAME" ]]; then
+				STATUS="online"
+				break
+			elif  [[ ! -n $(ss | grep -wc "$LAST_SSH") ]] && [[ $(ss | grep -wc "$LAST_SSH") -ne 0 ]]; then
+				STATUS="online"
+				break
+			elif [[ ! -n $(ss | grep -wc "$LAST_DROPBEAR") ]] && [[ $(ss | grep -wc "$LAST_DROPBEAR") -ne 0 ]]; then
+				STATUS="online"
+				break
+			else
+				STATUS="offline"
+				break
+			fi
+		done
+	echo -e " ${NAME}:${EXP}:${STATUS}" | sed 's/:/@| /g' >> "$tmpfile"
+	done < $HOME/list.txt
+	rm -f $HOME/list.txt
+
+	echo " USERNAME      EXPIRES ON      STATUS"
+	cat "$tmpfile" | column -t -s@
+	echo " +----------------------------------------+"
+	read -n1 -srp " Press enter to end"
+	manage_user
+fi

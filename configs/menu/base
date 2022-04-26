@@ -1,0 +1,64 @@
+#!/bin/bash
+
+red='\033[1;31m'
+green='\033[1;32m'
+yellow='\033[1;33m'
+black='\033[0;30m'
+cyan='\033[1;36m'
+blue='\033[1;34m'
+bg_cyan='\033[46m'
+color_off='\033[0m'
+tmpfile="/tmp/temp.txt"
+
+_title1() {
+	clear
+	echo -e "
+ +----------------------------------------+
+ :${black}${bg_cyan}               MAIN  MENU               ${color_off}:
+ +----------------------------------------+"
+}
+
+_title2() {
+	clear
+	echo -e "
+ +----------------------------------------+
+ :${black}${bg_cyan}           ACCOUNTS MANAGEMENT          ${color_off}:
+ +----------------------------------------+"
+}
+
+_title3() {
+	clear
+	echo -e "
+ +----------------------------------------+
+ :${black}${bg_cyan}        SERVICES/PORTS MANAGEMENT       ${color_off}:
+ +----------------------------------------+"
+}
+
+_title4() {
+	clear
+	echo -e "
+ +----------------------------------------+
+ :${black}${bg_cyan}             OTHER  SERVICES            ${color_off}:
+ +----------------------------------------+"
+}
+
+rm_tmp() {
+	[[ -e $tmpfile ]] && rm -f "$tmpfile"
+	unset opt
+}
+
+_enumerate() {
+	i=1
+	while IFS= read -r options; do
+		echo -e "  [${blue}${i}${color_off}] ${options}"
+		i=$((i+1))
+	done < "$tmpfile"
+	echo " +----------------------------------------+"
+}
+
+_prompt() {
+	until ((opt >= 1 && opt <= choices)); do
+		echo -ne " Choose number → ${blue}"
+		read -r opt && echo -ne "$color_off"
+	done
+}

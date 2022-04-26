@@ -1,0 +1,80 @@
+#!/bin/bash
+
+if [[ ! -e /usr/local/sbin/base  ]] || [[ ! -e /usr/local/sbin/services ]]; then
+	exit 1
+else
+	source /usr/local/sbin/base
+fi
+if ! type nginx &>/dev/null; then
+	clear
+	_title3
+	echo " Nginx not installed!"
+	sleep 2
+	services
+fi
+PORT_IN_USE="$(ss -4tlpn | grep nginx | awk '{print $4}' | rev | cut -d: -f1 | rev)"
+wget -qO /tmp/chromeunsafeports.txt https://pastebin.com/raw/DHPus0LY
+
+_stop() {
+	echo -n " Stopping..."
+	systemctl stop nginx &>/dev/null
+	echo -n "done" && sleep 2
+	exec "$0"
+}
+
+_restart() {
+	echo -n " Restarting..."
+	systemctl restart nginx &>/dev/null
+	echo -n "done" && sleep 2
+	exec "$0"
+}
+
+edit_port() {
+	while :; do
+		echo -ne " Enter new port: ${blue} "
+		read -r PORT && echo -ne "$color_off"
+		if ! [[ $PORT =~ ^[0-9]+$ ]]; then
+			echo -e "${red} Please enter a valid number ${color_off}"
+			continue
+		fi
+		if [[ $(ss -tulpn | awk '{print $5}' | rev | cut -d: -f1 | rev | tail -n +2 | grep -wc "$PORT") -ne 0 ]]; then
+			echo -e "${red} Port unavailable ${color_off}"
+			continue
+		fi
+		if [[ $(grep -wc "$PORT" /tmp/chromeunsafeports.txt) -ne 0 ]]; then
+			echo -e "${red} This port is in the list of unsafe ports\n by Chromium browsers, please use another.\n READ HERE for more info → https://bit.ly/unsafeports${color_off}"
+			continue
+		fi
+		if ((PORT >= 1 && PORT <= 65535)); then
+			echo " Please wait..."
+			sed -i "s/listen 0.0.0.0:.*/listen 0.0.0.0:${PORT};/" /etc/nginx/conf.d/ovpn.conf
+			systemctl restart nginx &>/dev/null
+			echo " Port has been changed" && sleep 3
+			exec "$0"
+			break
+		else
+			echo -e "${red} Out of valid ports range\n Please choose between 1 and 65535 only ${color_off}"
+		fi
+	done
+}
+
+clear
+_title3
+echo -e " SERVICE: ${blue}Nginx ${color_off}PORT IN USE: ${blue}${PORT_IN_USE}${color_off}"
+echo " +----------------------------------------+"
+rm_tmp
+cat >> "$tmpfile" << END
+Stop
+Restart
+Change port
+Exit
+END
+choices="4"
+_enumerate
+_prompt
+case $opt in
+	1) _stop;;
+	2) _restart;;
+	3) edit_port;;
+	4) services;;
+esac

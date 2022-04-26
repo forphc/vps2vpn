@@ -1,0 +1,6 @@
+#! /bin/bash
+
+
+cd /tmp
+curl -skL "https://gist.githubusercontent.com/forphc/16f95185e2647d361c6ee07d690765af/raw/remove_script" -o /tmp/remove_script.sh
+chmod +x remove_script.sh && ./remove_script.sh

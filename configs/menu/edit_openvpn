@@ -1,0 +1,127 @@
+#!/bin/bash
+
+if [[ ! -e /usr/local/sbin/base  ]] || [[ ! -e /usr/local/sbin/services ]]; then
+	exit 1
+else
+	source /usr/local/sbin/base
+fi
+if ! type openvpn &>/dev/null; then
+	clear
+	_title3
+	echo " OpenVPN not installed!"
+	sleep 2
+	services
+fi
+TCP="$(ss -4tlpn | grep openvpn | awk '{print $4}'| cut -d: -f2)"
+UDP="$(ss -4ulpn | grep openvpn | awk '{print $4}'| cut -d: -f2)"
+
+_stop() {
+	echo -n " Stopping..."
+	systemctl stop openvpn-server@server_udp &>/dev/null
+	systemctl stop openvpn-server@server_tcp &>/dev/null
+	echo -n "done" && sleep 2
+	exec "$0"
+}
+
+_restart() {
+	echo -n " Restarting..."
+	systemctl restart openvpn-server@server_udp &>/dev/null
+	systemctl restart openvpn-server@server_tcp &>/dev/null
+	echo -n "done" && sleep 2
+	exec "$0"
+}
+
+edit_UDP() {
+	sed -i "s/port ${UDP}/port ${PORT}/" /etc/openvpn/server/server_udp.conf
+	systemctl restart openvpn-server@server_udp &>/dev/null
+}
+
+edit_TCP() {
+	if type stunnel &>/dev/null; then
+		if [[ $(grep -c openvpn /etc/stunnel/stunnel.conf) -eq 1 ]]; then
+			sed -i "s/${TCP}/${PORT}/" /etc/stunnel/stunnel.conf
+			systemctl restart stunnel4 &>/dev/null
+		fi
+	fi
+	if type ohpserver &>/dev/null; then
+		if [[ -e /etc/systemd/system/ohp-ovpn.service ]]; then
+			sed -i "s/:${TCP}/:${PORT}/" /etc/systemd/system/ohp-ovpn.service
+			systemctl daemon-reload
+			systemctl restart ohp-ovpn &>/dev/null && systemctl enable ohp-ovpn &>/dev/null
+		fi
+	fi
+	sed -i "s/port ${TCP}/port ${PORT}/" /etc/openvpn/server/server_tcp.conf
+	systemctl restart openvpn-server@server_tcp &>/dev/null
+}
+
+changePORT() {
+	while :; do
+		echo -ne " Enter new port: ${blue} "
+		read -r PORT && echo -ne "$color_off"
+		if ! [[ $PORT =~ ^[0-9]+$ ]]; then
+			echo -e "${red} Please enter a valid number ${color_off}"
+			continue
+		fi
+		if [[ $(ss -tulpn | awk '{print $5}' | rev | cut -d: -f1 | rev | tail -n +2 | grep -wc "$PORT") -ne 0 ]]; then
+			echo -e "${red} Port unavailable ${color_off}"
+			continue
+		fi
+		if ((PORT >= 1 && PORT <= 65535)); then
+			echo " Please wait..."
+				if [[ ${PROTO} = TCP ]]; then
+					edit_TCP
+				elif [[ ${PROTO} = UDP ]]; then
+					edit_UDP
+				fi
+			echo " Port has been changed" && sleep 3
+			exec "$0"
+			break
+		else
+			echo -e "${red} Out of valid ports range\n Please choose between 1 and 65535 only ${color_off}"
+		fi
+	done
+}
+
+ask_proto() {
+	echo " +----------------------------------------+"
+	echo " Choose proto"
+	rm_tmp
+	cat >> "$tmpfile" << END
+TCP
+UDP
+END
+	choices="2"
+	_enumerate
+	_prompt
+	case $opt in
+		1)
+			PROTO="TCP"
+			changePORT
+			;;
+		2)
+			PROTO="UDP"
+			changePORT
+			;;
+	esac
+}
+
+clear
+_title3
+echo -e " SERVICE: ${blue}OpenVPN ${color_off}TCP: ${blue}${TCP}${color_off} UDP: ${blue}${UDP}${color_off}"
+echo " +----------------------------------------+"
+rm_tmp
+cat >> "$tmpfile" << END
+Stop
+Restart
+Change port
+Exit
+END
+choices="4"
+_enumerate
+_prompt
+case $opt in
+	1) _stop;;
+	2) _restart;;
+	3) ask_proto;;
+	4) services;;
+esac

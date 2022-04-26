@@ -1,0 +1,84 @@
+#!/bin/bash
+source /usr/local/sbin/base
+
+ask_expdate() {
+	while :; do
+		echo -ne " How may days?: ${blue} "
+		read -r input && echo -ne "$color_off"
+		if ! [[ $input =~ ^[0-9]+$ ]]; then
+			echo -e "${red} Please enter a valid number ${color_off}"
+		else
+			DAYS="$string"
+			break
+		fi
+	done
+}
+
+ask_pass() {
+	echo -ne " Enter Password: ${blue} "
+	read -r input && echo -ne "$color_off"
+	if [[ -z $input ]]; then
+		PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 10)
+		echo -e " Your random password is: ${blue} ${PASSWORD} ${color_off}"
+	else
+		PASSWORD="$input"
+	fi
+}
+
+ask_username() {
+	while :; do
+		echo -ne " Enter Username: ${blue} "
+		read -r input && echo -ne "$color_off"
+		if ! [[ $input =~ ^[[:alnum:]]+$ ]]; then
+			echo -e "${red} Please use letters and numbers only ${color_off}"
+			continue
+		fi
+		if [[ $(cut -d: -f1 /etc/passwd | grep -wc "$input") -eq 0 ]]; then
+			USERNAME="$input"
+			break
+		else
+			echo -e "${red} Username already taken ${color_off}"
+		fi
+	done
+}
+
+_title2
+ask_username
+ask_pass
+ask_expdate
+useradd -m -s /bin/false -e "$(date +%Y-%m-%d -d "$DAYS days")" "$USERNAME" -p "$(openssl passwd -1 "$PASSWORD")" &> /dev/null
+IP=$(wget -4qO - api.ipify.org)
+EXPIRY=$(chage -l "$USERNAME" | grep -i "account expires" | awk -F": " '{print $2}')
+NGINX_PORT="$(ss -4tlpn | grep nginx | awk '{print $4}' | rev | cut -d: -f1 | rev)"
+OPENSSH_PORT="$(ss -4tlpn | grep ssh | awk '{print $4}' | rev | cut -d: -f1 | rev)"
+DROPBEAR_PORT="$(ss -4tlpn | grep dropbear | awk '{print $4}' | rev | cut -d: -f1 | rev)"
+SQUID_PORT="$(ss -4tlpn | grep squid | awk '{print $4}' | rev | cut -d: -f1 | rev)"
+PRIVOXY_PORT="$(ss -4tlpn | grep privoxy | awk '{print $4}' | rev | cut -d: -f1 | rev)"
+STUNNEL_PORT="$(ss -4tlpn | grep stunnel | awk '{print $4}' | rev | cut -d: -f1 | rev | tr '\n' ' ')"
+OHP_PORT="$(ss -tlpn | grep ohpserver | awk '{print $4}' | rev | cut -d: -f1 | rev | tr '\n' ' ')"
+BADVPN_PORT="$(ss -4tlpn | grep badvpn | awk '{print $4}' | rev | cut -d: -f1 | rev)"
+
+clear
+_title2
+echo -e " +----------------------------------------+
+ Account details
+ Username    : ${blue}${USERNAME}${color_off}
+ Password    : ${blue}${PASSWORD}${color_off}
+ Expires on  : ${blue}${EXPIRY}${color_off}
+
+ Host/IP     : ${blue}${IP}${color_off}
+ OPenSSH     : ${blue}${OPENSSH_PORT}${color_off}
+ Dropbear    : ${blue}${DROPBEAR_PORT}${color_off}
+ Squid Proxy : ${blue}${SQUID_PORT}${color_off}
+ Privoxy     : ${blue}${PRIVOXY_PORT}${color_off}
+ Stunnel4    : ${blue}${STUNNEL_PORT}${color_off}
+ OHPserver   : ${blue}${OHP_PORT}${color_off}
+ Badvpn-udpgw: ${blue}${BADVPN_PORT}${color_off}
+ 
+ OpenVPN Config
+ Download Link: ${blue}http://${IP}:${NGINX_PORT}${color_off}
+ 
+ Create DNS here: ${blue}https://bit.ly/createdns${color_off}
+ +----------------------------------------+"
+read -n 1 -srp " Press enter to end"
+manage_user

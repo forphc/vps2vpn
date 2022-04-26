@@ -1,0 +1,18 @@
+#! /bin/bash
+
+if command -v speedtest > /dev/null; then
+	speedtest
+else
+	#Speedtest(Ookla)
+	## If migrating from prior bintray install instructions please first...
+	rm /etc/apt/sources.list.d/speedtest.list
+	apt-get update
+	apt-get remove speedtest
+	## Other non-official binaries will conflict with Speedtest CLI
+	# Example how to remove using apt-get
+	apt-get remove speedtest-cli
+	curl -s https://install.speedtest.net/app/cli/install.deb.sh | sudo bash
+	apt-get install speedtest
+	sleep 0.5 && clear
+	speedtest
+fi

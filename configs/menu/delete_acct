@@ -1,0 +1,91 @@
+#!/bin/bash
+source /usr/local/sbin/base
+USERDB="/tmp/user.db"
+
+del_all() {
+	_title2
+	if [[ $(awk -F: '$3 > 1000 {print $1}' /etc/passwd | grep -cv '^nobody') -eq 0 ]]; then
+		echo -e "${yellow} No existing users.${color_off}"
+		sleep 2
+		delete_acct
+	else
+		grep -v '^nobody' /etc/passwd | awk -F: '$3 > 1000 {print $1}' > "$USERDB"
+		echo -ne "${red} [!]${yellow} Confirm delete all users [y/N]: ${blue} "
+		read -r input && echo -ne "$color_off"
+			case $input in
+				Y|y)
+					while IFS= read -r USER; do
+						echo -e " Deleting ${blue}${USER}${color_off}..."
+						userdel -f "$USER"
+						rm -rf /home/"${USER:?}"
+						sleep 0.5
+					done < "$USERDB"
+					echo " All users deleted"
+					read -n1 -srp " Press enter to end"
+					delete_acct
+					;;
+				*)
+					delete_acct
+					;;
+			esac
+	fi
+}
+
+del_one() {
+	_title2
+	if [[ $(awk -F: '$3 > 1000 {print $1}' /etc/passwd | grep -cv '^nobody') -eq 0 ]]; then
+		echo -e "${yellow} No existing user.${color_off}"
+		sleep 2
+		delete_acct
+	else
+		grep -v '^nobody' /etc/passwd | awk -F: '$3 > 1000 {print $1}' > "$USERDB"
+		i=1
+		while IFS= read -r name; do
+			echo -e "  [${blue}${i}${color_off}] $name"
+			i=$((i+1))
+		done < "$USERDB"
+		echo " +----------------------------------------+"
+		echo " Which account do you want to delete? "
+		while :; do
+			echo -ne " Choose number[${yellow}x to cancel${color_off}] → ${blue} "
+			read -r input && echo -ne "$color_off"
+			USERNAME=$(sed "${input}q;d" "$USERDB")
+			if [[ $input = [xX] ]]; then
+				delete_acct
+				break
+			fi
+			if ! [[ $input =~ ^[0-9]+$ ]]; then
+				echo -e "${red} Please input valid number ${color_off}"
+				continue
+			fi
+			if [[ -z $USERNAME ]]; then
+				echo -e "${red} Please try again.${color_off}"
+				continue
+			else
+				echo -e " Deleting ${blue}${USERNAME}${color_off}..."
+				userdel -f "$USERNAME"
+				rm -rf /home/"${USERNAME:?}"
+				echo -e "${blue} ${USERNAME}${color_off} deleted."
+				read -n1 -srp " Press enter to end"
+				delete_acct
+				break
+			fi
+		done
+	fi	
+}
+
+_title2
+rm_tmp
+cat >> "$tmpfile" << END
+Delete One
+Delete All
+Back
+END
+choices=3
+_enumerate
+_prompt
+case $opt in
+	1) del_one;;
+	2) del_all;;
+	3) manage_user;;
+esac

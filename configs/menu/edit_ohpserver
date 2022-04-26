@@ -1,0 +1,97 @@
+#!/bin/bash
+
+if [[ ! -e /usr/local/sbin/base  ]] || [[ ! -e /usr/local/sbin/services ]]; then
+	exit 1
+else
+	source /usr/local/sbin/base
+fi
+if ! type ohpserver &>/dev/null; then
+	clear
+	_title3
+	echo " OHPserver not installed!"
+	sleep 2
+	services
+fi
+PORT_IN_USE="$(ss -tlpn | grep ohpserver | awk '{print $4}'| rev | cut -d: -f1 | rev | tr '\n' ' ')"
+ss -tlpn | grep ohpserver | awk '{print $4}'| rev | cut -d: -f1 | rev > /tmp/ohp_ports
+
+_stop() {
+	echo -n " Stopping..."
+	systemctl stop ohp-dropbear &>/dev/null
+	systemctl stop ohp-ovpn &>/dev/null
+	echo -n "done" && sleep 2
+	exec "$0"
+}
+
+_restart() {
+	echo -n " Restarting..."
+	systemctl restart ohp-dropbear &>/dev/null
+	systemctl restart ohp-ovpn &>/dev/null
+	echo -n "done" && sleep 2
+	exec "$0"
+}
+
+edit_port() {
+	echo " +----------------------------------------+"
+	echo " Which port do you want to change?"
+	i=1
+	while IFS= read -r PORT; do
+		echo -e "  [${blue}${i}${color_off}] $PORT"
+		i=$((i+1))
+	done < "/tmp/ohp_ports"
+	echo " +----------------------------------------+"
+	choices="$(cat /tmp/ohp_ports | wc -l)"
+	until ((input >= 1 && input <= choices)); do
+		echo -ne " Choose number → ${blue}"
+		read -r input && echo -ne "$color_off"
+	done
+	oldPORT=$(sed "${input}q;d" "/tmp/ohp_ports")
+	echo " Port to change: $oldPORT"
+	while :; do
+		echo -ne " Enter new port: ${blue} "
+		read -r PORT && echo -ne "$color_off"
+		if ! [[ $PORT =~ ^[0-9]+$ ]]; then
+			echo -e "${red} Please enter a valid number ${color_off}"
+			continue
+		fi
+		if [[ $(ss -tulpn | awk '{print $5}' | rev | cut -d: -f1 | rev | tail -n +2 | grep -wc "$PORT") -ne 0 ]]; then
+			echo -e "${red} Port unavailable ${color_off}"
+			continue
+		fi
+		if ((PORT >= 1 && PORT <= 65535)); then
+			echo " Please wait..."
+      			sed -i "s/port ${oldPORT}/port ${PORT}/" /etc/systemd/system/ohp-dropbear.service
+			sed -i "s/port ${oldPORT}/port ${PORT}/" /etc/systemd/system/ohp-ovpn.service
+			systemctl daemon-reload
+			systemctl restart ohp-dropbear &>/dev/null && systemctl enable ohp-dropbear &>/dev/null
+			systemctl restart ohp-ovpn &>/dev/null && systemctl enable ohp-ovpn &>/dev/null
+			sleep 1
+			echo " Port has been changed" && sleep 2
+			exec "$0"
+			break
+		else
+			echo -e "${red} Out of valid ports range\n Please choose between 1 and 65535 only ${color_off}"
+		fi
+	done
+}
+
+clear
+_title3
+echo -e " SERVICE: ${blue}OHPserver ${color_off}PORT IN USE: ${blue}${PORT_IN_USE}${color_off}"
+echo " +----------------------------------------+"
+rm_tmp
+cat >> "$tmpfile" << END
+Stop
+Restart
+Change port
+Exit
+END
+choices="4"
+_enumerate
+_prompt
+case $opt in
+	1) _stop;;
+	2) _restart;;
+	3) edit_port;;
+	4) services;;
+esac

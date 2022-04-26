@@ -1,0 +1,77 @@
+#!/bin/bash
+
+if [[ ! -e /usr/local/sbin/base  ]] || [[ ! -e /usr/local/sbin/services ]]; then
+	exit 1
+else
+	source /usr/local/sbin/base
+fi
+if ! type squid &>/dev/null; then
+	clear
+	_title3
+	echo " Squid Proxy not installed!"
+	sleep 2
+	services
+fi
+PORT_IN_USE="$(ss -4tlpn | grep squid | awk '{print $4}'| cut -d: -f2)"
+
+_stop() {
+	echo -n " Stopping..."
+	systemctl stop squid &>/dev/null
+	echo -n "done" && sleep 2
+	exec "$0"
+}
+
+_restart() {
+	echo -n " Restarting..."
+	systemctl restart squid &>/dev/null
+	echo -n "done" && sleep 2
+	exec "$0"
+}
+
+edit_port() {
+	while :; do
+		echo -ne " Enter new port: ${blue} "
+		read -r PORT && echo -ne "$color_off"
+		if ! [[ $PORT =~ ^[0-9]+$ ]]; then
+			echo -e "${red} Please enter a valid number ${color_off}"
+			continue
+		fi
+		if [[ $(ss -tulpn | awk '{print $5}' | rev | cut -d: -f1 | rev | tail -n +2 | grep -wc "$PORT") -ne 0 ]]; then
+			echo -e "${red} Port unavailable ${color_off}"
+			continue
+		fi
+		if ((PORT >= 1 && PORT <= 65535)); then
+			echo " Please wait..."
+			sed -i "s/http_port ${PORT_IN_USE}/http_port 0.0.0.0:${PORT}/" /etc/squid/squid.conf
+			sed -i "s/http_port 0.0.0.0:${PORT_IN_USE}/http_port 0.0.0.0:${PORT}/" /etc/squid/squid.conf
+			systemctl restart squid &>/dev/null
+			sleep 1
+			echo " Port has been changed" && sleep 2
+			exec "$0"
+			break
+		else
+			echo -e "${red} Out of valid ports range\n Please choose between 1 and 65535 only ${color_off}"
+		fi
+	done
+}
+
+clear
+_title3
+echo -e " SERVICE: ${blue}Squid Proxy ${color_off}PORT IN USE: ${blue}${PORT_IN_USE}${color_off}"
+echo " +----------------------------------------+"
+rm_tmp
+cat >> "$tmpfile" << END
+Stop
+Restart
+Change port
+Exit
+END
+choices="4"
+_enumerate
+_prompt
+case $opt in
+	1) _stop;;
+	2) _restart;;
+	3) edit_port;;
+	4) services;;
+esac

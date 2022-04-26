@@ -1,0 +1,128 @@
+#! /bin/bash
+source /usr/local/sbin/base
+
+remove() {
+	clear
+	_title3
+	rm -f /etc/banner && touch /etc/banner
+	echo -e "${blue} Banner removed ${color_off}"
+	echo -e "${yellow} Please restart services\n for the banner to take effect ${color_off}"
+	read -n1 -srp " Press enter to end"
+	edit_banner
+}
+
+edit() {
+	echo "<${hsize} ${alignment}><span style='color: ${color};'>${message}" >> /etc/banner
+	echo "</span></${hsize}>" >> /etc/banner
+	clear
+	_title3
+	echo -e "${blue} Banner has been created ${color_off}"
+	echo -e "${yellow} Please restart services\n for the banner to take effect ${color_off}"
+	read -n1 -srp " Press enter to end"
+	edit_banner
+}
+
+ask_msgalign() {
+	clear
+	_title3
+	rm_tmp
+	echo -e "${yellow} Choose text-align ${color_off} "
+	cat >> "$tmpfile" << END
+Left
+Center
+Right
+END
+	choices="3"
+	_enumerate
+	_prompt
+	_align=$(sed "${opt}q;d" "$tmpfile")
+	echo -e " Selected alignment: ${yellow}${_align}${color_off}"
+	read -n1 -srp " Press enter to continue"
+	[[ $_align = "Left" ]] && alignment="style='text-align: left;'"
+	[[ $_align = "Center" ]] && alignment="style='text-align: center;'"
+	[[ $_align = "Right" ]] && alignment="style='text-align: right;'"
+}
+
+ask_msgfont() {
+	clear
+	_title3
+	rm_tmp
+	echo -e "${yellow} Choose font size${color_off}"
+	cat >> "$tmpfile" << END
+Small
+Medium
+Large
+END
+	choices="3"
+	_enumerate
+	_prompt
+	size=$(sed "${opt}q;d" "$tmpfile")
+	echo -e " Selected font size: ${yellow}${size}${color_off}"
+	read -n1 -srp " Press enter to continue"
+	[[ $size = "Small" ]] && hsize="h6"
+	[[ $size = "Medium" ]] && hsize="h3"
+	[[ $size = "Large" ]] && hsize="h1"
+}
+
+ask_msgcolor() {
+	clear
+	_title3
+	rm_tmp
+	echo -e "${yellow} Choose color${color_off}"
+	cat >> "$tmpfile" << END
+Maroon
+Red
+Purple
+Fuchsia
+Navy
+Blue
+Teal
+Aqua
+Green
+Lime
+Olive
+Yellow
+Black
+END
+	choices="13"
+	_enumerate
+	_prompt
+	color=$(sed "${opt}q;d" "$tmpfile")
+	echo -e " Selected Color: ${yellow}${color}${color_off}"
+	read -n1 -srp " Press enter to continue"
+}
+
+ask_msg() {
+	clear
+	_title3
+	echo -ne "${yellow} Enter your message:${color_off} "
+	read -r message
+}
+
+pre_edit() {
+	ask_msg
+	ask_msgcolor
+	ask_msgfont
+	ask_msgalign
+}
+
+_title3
+rm_tmp
+cat >> "$tmpfile" << END
+Append message
+Remove banner
+Back
+END
+choices="3"
+_enumerate
+_prompt
+case $opt in
+	1)
+		pre_edit
+		edit
+		;;
+	2)
+		remove;;
+	3)
+		manage_user;;
+esac

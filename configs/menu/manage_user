@@ -1,0 +1,22 @@
+#!/bin/bash
+source /usr/local/sbin/base
+
+_title2
+rm_tmp
+cat >> "$tmpfile" << END
+Create account
+Delete account
+Account details
+Edit banner/message
+Back
+END
+choices="5"
+_enumerate
+_prompt
+case $opt in
+	1) create_acct;;
+	2) delete_acct;;
+	3) acct_details;;
+	4) edit_banner;;
+	5) menu;;
+esac

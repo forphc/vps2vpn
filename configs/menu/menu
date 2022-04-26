@@ -1,0 +1,33 @@
+#!/bin/bash
+source /usr/local/sbin/base
+TIME=$(date "+%H")
+
+_title1
+rm_tmp
+cat >> "$tmpfile" << END
+Manage accounts
+Manage services
+Others
+Exit
+END
+choices="4"
+_enumerate
+if [[ 10#$TIME -lt 12 ]]; then
+	echo -e "${blue} Good Morning! ${color_off}What do you wanna do?"
+elif [[ 10#$TIME -lt 18 ]]; then
+	echo -e "${blue} Good Afternoon! ${color_off}What do you wanna do?"
+else
+	echo -e "${blue} Good Evening! ${color_off}What do you wanna do?"
+fi
+_prompt
+case $opt in
+	1)
+		manage_user;;
+	2)
+		services;;
+	3)
+		other_service;;
+	4)
+		clear
+		exit;;
+esac

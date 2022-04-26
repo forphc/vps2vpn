@@ -1,0 +1,92 @@
+#!/bin/bash
+
+source /usr/local/sbin/base
+
+please_wait() {
+	PID=$!
+	DOTS=( '.' '..' '...' '   ' )
+	while kill -0 $PID &>/dev/null; do
+		for x in "${DOTS[@]}"; do
+			echo -ne " Please wait${x}\r" && sleep 0.5 && echo -ne "\033[2K"
+		done
+	done
+}
+
+restart_all() {
+	local SERVICE_NAME=(dropbear squid privoxy ziproxy nginx stunnel4 webmin openvpn-server@server_tcp openvpn-server@server_udp ohp-dropbear ohp-ovpn badvpn-udpgw)
+	systemctl daemon-reload
+	for service in "${SERVICE_NAME[@]}"; do
+		systemctl enable "$service" &>/dev/null
+		systemctl restart "$service" &>/dev/null
+	done
+}
+
+show_port () {
+	local TMP="/tmp/ports.table"
+	echo " +----------------------------------------+"
+	ss -tulnpH | awk '{print $5,$7}' | cut -d'"' -f1,2 | sed 's/"/:/g' | rev | cut -d: -f1,3 | rev | sed 's/ users//g' | sort -u | column -t -s: > "$TMP"
+	while IFS= read -r LINE; do echo -e "\t $LINE"; done < "$TMP"
+	echo " +----------------------------------------+"
+	read -n1 -srp " Press enter to end"
+	services
+}
+
+choose_service() {
+	clear
+	_title3
+	rm_tmp
+	cat >> "$tmpfile" << END
+Dropbear
+Squid
+Privoxy
+Ziproxy
+Stunnel
+Openvpn
+OHPserver
+Badvpn-udpgw
+Webmin
+Nginx
+Exit
+END
+	choices="11"
+	_enumerate
+	_prompt
+  case $opt in
+		1) edit_dropbear;;
+		2) edit_squid;;
+		3) edit_privoxy;;
+		4) edit_ziproxy;;
+		5) edit_stunnel;;
+		6) edit_openvpn;;
+		7) edit_ohpserver;;
+		8) edit_badvpn;;
+		9) edit_webmin;;
+		10) edit_nginx;;
+		11) services;;
+  esac
+}
+
+clear
+_title3
+rm_tmp
+cat >> "$tmpfile" << END
+Manage service
+Show all ports
+Restart all services
+Exit
+END
+choices="4"
+_enumerate
+_prompt
+case $opt in
+	1) choose_service;;
+	2) show_port;;
+	3)
+		echo " Restarting..."
+		restart_all &>/dev/null &
+		please_wait
+		echo " Done" && sleep 2
+		services
+		;;
+	4) menu;;
+esac
