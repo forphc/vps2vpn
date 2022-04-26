@@ -12,7 +12,7 @@ OPTIMIZE_FILE="/etc/sysctl.d/custom-optimize.conf"
 _credits() {
 	cat << END
 
- This script will bot be
+ This script will not be
  possible without the following:
  
  Bon-chan
