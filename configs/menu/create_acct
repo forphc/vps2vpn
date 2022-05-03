@@ -8,7 +8,7 @@ ask_expdate() {
 		if ! [[ $input =~ ^[0-9]+$ ]]; then
 			echo -e "${red} Please enter a valid number ${color_off}"
 		else
-			DAYS="$string"
+			DAYS="$input"
 			break
 		fi
 	done
