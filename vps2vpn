@@ -264,8 +264,6 @@ iptables-save > "$RULES"
 
 [[ $(grep -c -- "-A POSTROUTING -s 10.8.0.0/16 -o "$IFACE" -j MASQUERADE" "$RULES") -eq 0 ]] && iptables -t nat -A POSTROUTING -s 10.8.0.0/16 -o "$IFACE" -j MASQUERADE
 [[ $(grep -c -- "-A POSTROUTING -s 10.8.0.0/16 -o "$IFACE" -j SNAT --to-source "$PUBLIC_IP"" "$RULES") -eq 0 ]] && iptables -t nat -A POSTROUTING -s 10.8.0.0/16 -o "$IFACE" -j SNAT --to-source "$PUBLIC_IP"
-[[ $(grep -c -- "-A FORWARD -i "$IFACE" -o tun0 -j ACCEPT" "$RULES") -eq 0 ]] && iptables -A FORWARD -i "$IFACE" -o tun0 -j ACCEPT
-[[ $(grep -c -- "-A FORWARD -i tun0 -o "$IFACE" -j ACCEPT" "$RULES") -eq 0 ]] && iptables -A FORWARD -i tun0 -o "$IFACE" -j ACCEPT
 [[ $(grep -c -- "-A FORWARD -s 10.8.0.0/16 -j ACCEPT" "$RULES") -eq 0 ]] && iptables -A FORWARD -s 10.8.0.0/16 -j ACCEPT
 
 iptables-save > "$RULES"
