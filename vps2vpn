@@ -235,7 +235,11 @@ END
 	wget -qO $HOME/.delexp.sh "$CONF_LINK"/delexp.sh && chmod 755 $HOME/.delexp.sh
 
 	crontab -l > mycron &>/dev/null
-	echo "0 1 * * * $HOME/.delexp.sh &>/dev/null" >> mycron
+	cat >> mycron << END
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+0 1 * * * $HOME/.delexp.sh &>>$HOME/.delexp.log
+END
 	crontab mycron && rm mycron
 	systemctl enable cron &>/dev/null
 
