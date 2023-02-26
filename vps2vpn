@@ -40,13 +40,13 @@ _echo_info "Starting installation..."
 _echo_info "This will take up some time, please be patient..."
 sleep 3
 
-apt-get install -y build-essential cmake unzip jq libssl-dev liblzo2-dev libpam0g-dev pkg-config libsystemd-dev nginx
+apt-get install -y build-essential cmake unzip jq libssl-dev liblzo2-dev libpam0g-dev pkg-config libsystemd-dev libcap-ng-dev nginx
 _openvpn() {
 	local OPENVPN_LATEST_DLINK=$(wget -qO - https://openvpn.net/community-downloads/ | grep 'swupdate.openvpn.org' | cut -d'"' -f2 | grep 'tar.gz$' | head -1)
 	wget -qO ovpn_latest.tar.gz "$OPENVPN_LATEST_DLINK"
 	tar xzf ovpn_latest.tar.gz && rm -f ovpn_latest.tar.gz
 	cd openvpn-*
-	./configure --enable-systemd
+	./configure --enable-systemd --disable-lz4
 	make -j$(nproc)
 	make install
 	cd $HOME
