@@ -5,9 +5,22 @@ _echo_error() { echo -e " [\033[1;31mX\033[0m] $1 "; }
 
 [[ $EUID -ne 0 ]] && _echo_error "This script needs to be run as root, exiting..." && exit 1
 
+# Check if distro is Ubuntu 18.04 or later or Debian 9 stretch or later
 source /etc/os-release
-[[ $(echo "ubuntu debian" | grep -o "$ID") != "$ID" ]] && _echo_error "OS distro not supported, exiting..." && exit 1
-[[ $(echo "stretch buster bionic focal" | grep -o "$VERSION_CODENAME") != "$VERSION_CODENAME" ]] && _echo_error "OS release version not supported, exiting..." && exit 1
+if [[ $ID == "ubuntu" ]]; then
+	if [[ ${VERSION_ID%%.*} -lt 18 ]]; then
+		_echo_error "This script is only compatible with Ubuntu 18.04 or later"
+		exit 1
+	fi
+elif [[ $ID == "debian" ]]; then
+	if [[ ${VERSION_ID%%.*} -lt 9 ]]; then
+		_echo_error "This script is only compatible with Debian 9 or later"
+		exit 1
+	fi
+else
+	_echo_error "This script is only compatible with Ubuntu 18.04 or later or Debian 9 or later" >&2
+	exit 1
+fi
 
 PUBLIC_IP=$(wget -4qO - api.ipify.org)
 IFACE=$(ip route get 8.8.8.8 | awk -- '{printf $5}')
