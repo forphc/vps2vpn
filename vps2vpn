@@ -4,8 +4,9 @@
 # This is the main controller script that executes the installers.
 
 # --- Load Utilities and Settings ---
-source installers/utils.sh
-source settings.conf
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "$SCRIPT_DIR/installers/utils.sh"
+source "$SCRIPT_DIR/settings.conf"
 
 # --- Initial Checks ---
 _echo_info "Performing initial system checks..."
@@ -61,31 +62,31 @@ sleep 3
 
 # --- Run Installers ---
 _echo_info "Installing base packages..."
-bash installers/install_base_packages.sh
+bash "$SCRIPT_DIR/installers/install_base_packages.sh" "$SCRIPT_DIR"
 
 _echo_info "Installing OpenVPN..."
-bash installers/install_openvpn.sh &
+bash "$SCRIPT_DIR/installers/install_openvpn.sh" "$SCRIPT_DIR" &
 
 _echo_info "Installing Badvpn..."
-bash installers/install_badvpn.sh &
+bash "$SCRIPT_DIR/installers/install_badvpn.sh" "$SCRIPT_DIR" &
 
 _echo_info "Installing Fail2ban..."
-bash installers/install_fail2ban.sh &
+bash "$SCRIPT_DIR/installers/install_fail2ban.sh" "$SCRIPT_DIR" &
 
 _echo_info "Configuring system..."
-bash installers/configure_system.sh &
+bash "$SCRIPT_DIR/installers/configure_system.sh" "$SCRIPT_DIR"
 
 _echo_info "Installing Neofetch..."
-bash installers/install_neofetch.sh
+bash "$SCRIPT_DIR/installers/install_neofetch.sh" "$SCRIPT_DIR"
 
 _echo_info "Installing Webmin..."
-bash installers/install_webmin.sh
+bash "$SCRIPT_DIR/installers/install_webmin.sh" "$SCRIPT_DIR"
 
 _echo_info "Waiting for background installations to finish..."
 wait
 
 _echo_info "Finalizing setup..."
-bash installers/finalize.sh
+bash "$SCRIPT_DIR/installers/finalize.sh" "$SCRIPT_DIR"
 
 # --- Completion ---
 T2=$(date +%s)

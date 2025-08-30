@@ -1,10 +1,14 @@
 #!/bin/bash
 
 # This script finalizes the installation by starting services and setting up the firewall.
+# It is called by the main vps2vpn script.
+
+# The first argument is the absolute path to the script's root directory
+SCRIPT_DIR="$1"
 
 # Source the main settings and utility files
-source ../settings.conf
-source ../installers/utils.sh
+source "$SCRIPT_DIR/settings.conf"
+source "$SCRIPT_DIR/installers/utils.sh"
 
 _echo_info "Firing up services..."
 SERVICE_NAME=(dropbear squid privoxy ziproxy nginx stunnel4 webmin openvpn-server@server_tcp openvpn-server@server_udp badvpn-udpgw fail2ban)

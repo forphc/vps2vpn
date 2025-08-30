@@ -1,9 +1,13 @@
 #!/bin/bash
 
 # This script installs Badvpn.
+# It is called by the main vps2vpn script.
+
+# The first argument is the absolute path to the script's root directory
+SCRIPT_DIR="$1"
 
 # Source the main settings file
-source ../settings.conf
+source "$SCRIPT_DIR/settings.conf"
 
 _badvpn() {
 	local ZIP="1.999.130.zip"
@@ -17,7 +21,7 @@ _badvpn() {
 	cd $HOME
 	rm -rf badvpn-1.999.130
 	rm -f /lib/systemd/system/badvpn-udpgw.service
-	wget -qO /lib/systemd/system/badvpn-udpgw.service "$REPO_BASE_URL"/configs/systemd/badvpn-udpgw.service
+	cp "$SCRIPT_DIR/configs/systemd/badvpn-udpgw.service" /lib/systemd/system/badvpn-udpgw.service
 	sed -i "s/BADVPN_PORT/${BADVPN_PORT}/" /lib/systemd/system/badvpn-udpgw.service
 }
 
