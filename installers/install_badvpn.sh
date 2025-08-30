@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Enable verbose debugging
+set -x
+
 # This script installs Badvpn.
 # It is called by the main vps2vpn script.
 
