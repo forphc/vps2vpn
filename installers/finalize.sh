@@ -10,8 +10,8 @@ _echo_info "Firing up services..."
 SERVICE_NAME=(dropbear squid privoxy ziproxy nginx stunnel4 webmin openvpn-server@server_tcp openvpn-server@server_udp badvpn-udpgw fail2ban)
 systemctl daemon-reload
 for service in "${SERVICE_NAME[@]}"; do
-	systemctl enable "$service" &>/dev/null
-	systemctl restart "$service" &>/dev/null
+	systemctl enable "$service"
+	systemctl restart "$service"
 done
 
 RULES="/etc/iptables/rules.v4"
@@ -22,5 +22,5 @@ iptables-save > "$RULES"
 [[ $(grep -c -- "-A FORWARD -s 10.8.0.0/16 -j ACCEPT" "$RULES") -eq 0 ]] && iptables -A FORWARD -s 10.8.0.0/16 -j ACCEPT
 
 iptables-save > "$RULES"
-netfilter-persistent save &> /dev/null
-systemctl enable netfilter-persistent &> /dev/null
+netfilter-persistent save
+systemctl enable netfilter-persistent

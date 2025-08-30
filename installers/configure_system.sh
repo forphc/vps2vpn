@@ -49,7 +49,7 @@ END
 	if [[ $(sysctl net.ipv4.ip_forward | awk -F'= ' '{print $2}') -eq 0 ]]; then
 		echo 1 > /proc/sys/net/ipv4/ip_forward
 		echo "net.ipv4.ip_forward=1" >> /etc/sysctl.d/custom.conf
-		sysctl -p /etc/sysctl.d/custom.conf &> /dev/null
+		sysctl -p /etc/sysctl.d/custom.conf
 	fi
 
 	timedatectl set-timezone Asia/Manila
