@@ -23,7 +23,7 @@ _openvpn() {
 
 	for item in "server_tcp" "server_udp"; do
 		wget -qO /etc/openvpn/server/"$item".conf "$REPO_BASE_URL"/configs/openvpn/"$item".conf
-		printf "\nplugin %s /etc/pam.d/login" "$(find /usr -name openvpn-plugin-auth-pam.so | head -1)" | tee -a /etc/openvpn/server/"$item".conf &>/dev/null
+		printf "\nplugin %s /etc/pam.d/login" "$(find /usr -name openvpn-plugin-auth-pam.so | head -1)" | tee -a /etc/openvpn/server/"$item".conf
 		sed -i "s/OVPN_TCP_PORT/${OVPN_TCP_PORT}/;s/OVPN_UDP_PORT/${OVPN_UDP_PORT}/" /etc/openvpn/server/"$item".conf
 
 		rm -f /lib/systemd/system/openvpn-server@"$item".service

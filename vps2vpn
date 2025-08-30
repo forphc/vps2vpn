@@ -41,6 +41,14 @@ echo "================================================="
 echo
 read -rp " Proceed with installation? [Y/n]: "
 [[ $REPLY =~ [nN] ]] && echo " Installation cancelled, exiting..." && exit
+
+# --- Setup Logging ---
+touch "$LOG_FILE"
+chmod 644 "$LOG_FILE"
+_echo_info "Full installation log will be available in: $LOG_FILE"
+sleep 3
+exec &> >(tee -a "$LOG_FILE")
+
 export DEBIAN_FRONTEND=noninteractive
 T1="$(date +%s)"
 
