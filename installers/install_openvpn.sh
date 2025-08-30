@@ -1,9 +1,13 @@
 #!/bin/bash
 
 # This script installs OpenVPN.
+# It is called by the main vps2vpn script.
+
+# The first argument is the absolute path to the script's root directory
+SCRIPT_DIR="$1"
 
 # Source the main settings file
-source ../settings.conf
+source "$SCRIPT_DIR/settings.conf"
 
 _openvpn() {
 	wget -qO openvpn.tar.gz "https://swupdate.openvpn.net/community/releases/openvpn-2.6.14.tar.gz"
@@ -18,11 +22,11 @@ _openvpn() {
 	rm -rf /etc/openvpn/server && mkdir -p /etc/openvpn/server
 	rm -rf /var/log/openvpn && mkdir -p /var/log/openvpn
 
-	wget -qO rsa-1024.zip "$REPO_BASE_URL"/rsa-1024.zip
+	cp "$SCRIPT_DIR/rsa-1024.zip" .
 	unzip -q -d '/etc/openvpn' rsa-1024.zip && rm -f rsa-1024.zip
 
 	for item in "server_tcp" "server_udp"; do
-		wget -qO /etc/openvpn/server/"$item".conf "$REPO_BASE_URL"/configs/openvpn/"$item".conf
+		cp "$SCRIPT_DIR/configs/openvpn/$item.conf" "/etc/openvpn/server/$item.conf"
 		printf "\nplugin %s /etc/pam.d/login" "$(find /usr -name openvpn-plugin-auth-pam.so | head -1)" | tee -a /etc/openvpn/server/"$item".conf
 		sed -i "s/OVPN_TCP_PORT/${OVPN_TCP_PORT}/;s/OVPN_UDP_PORT/${OVPN_UDP_PORT}/" /etc/openvpn/server/"$item".conf
 
@@ -69,7 +73,7 @@ server {
 END
 	rm -rf /etc/nginx/sites-*
 	rm -rf /var/www/openvpn && mkdir -p /var/www/openvpn
-	wget -qO /var/www/openvpn/index.html "$REPO_BASE_URL"/configs/nginx/index.html
+	cp "$SCRIPT_DIR/configs/nginx/index.html" /var/www/openvpn/
 
 	local CLIENT_CONFIG=(client_tcp.ovpn client_udp.ovpn)
 	local OPENVPN_SERVER_VERSION=$(openvpn --version | grep -w "^OpenVPN" | awk '{print $2}')
@@ -78,7 +82,7 @@ END
 	local REGION=$(wget -qO - http://ipwhois.app/json/ | jq -r '.region')
 	local DATE=$(date +%m-%d-%Y)
 	for ovpn in "${CLIENT_CONFIG[@]}"; do
-		wget -qO /var/www/openvpn/"$ovpn" "$REPO_BASE_URL"/configs/openvpn/"$ovpn"
+		cp "$SCRIPT_DIR/configs/openvpn/$ovpn" "/var/www/openvpn/$ovpn"
 		echo -e "\n<ca>" >> /var/www/openvpn/"$ovpn"
 		tee -a /var/www/openvpn/"$ovpn" < /etc/openvpn/ca.crt >/dev/null
 		echo "</ca>" >> /var/www/openvpn/"$ovpn"
