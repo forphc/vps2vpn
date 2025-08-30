@@ -4,9 +4,8 @@
 - Squid Proxy
 - Privoxy
 - OpenVPN
-- OpenHTTP Puncher Server
 - Nginx (for .ovpn configs download links)
-- Ziproxy (OHPserver's HTTP proxy)
+- Ziproxy
 - Stunnel4
 - Badvpn-udpgw
 - Webmin
