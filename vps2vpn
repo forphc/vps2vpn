@@ -33,8 +33,6 @@ STUNNEL_DROPBEAR_PORT='442'
 STUNNEL_OVPN_PORT='444'
 OVPN_TCP_PORT='1194'
 OVPN_UDP_PORT='1196'
-OHP_PORT_DROPBEAR='8800'
-OHP_PORT_OVPN='8700'
 NGINX_PORT='85'
 BADVPN_PORT='7300'
 
@@ -55,15 +53,14 @@ sleep 3
 
 apt-get install -y build-essential cmake unzip jq libssl-dev liblzo2-dev libnl-genl-3-dev libcap-ng-dev libsystemd-dev libpam0g-dev pkg-config nginx
 _openvpn() {
-	local OPENVPN_LATEST_DLINK=$(wget -qO - https://openvpn.net/community-downloads/ | grep 'swupdate.openvpn.org' | cut -d'"' -f2 | grep 'tar.gz$' | head -1)
-	wget -qO ovpn_latest.tar.gz "$OPENVPN_LATEST_DLINK"
-	tar xzf ovpn_latest.tar.gz && rm -f ovpn_latest.tar.gz
-	cd openvpn-*
+	wget -qO openvpn.tar.gz "https://swupdate.openvpn.net/community/releases/openvpn-2.6.14.tar.gz"
+	tar xzf openvpn.tar.gz && rm -f openvpn.tar.gz
+	cd openvpn-2.6.14
 	./configure --enable-systemd --disable-lz4
 	make -j$(nproc)
 	make install
 	cd $HOME
-	rm -rf openvpn-*
+	rm -rf openvpn-2.6.14
 
 	rm -rf /etc/openvpn/server && mkdir -p /etc/openvpn/server
 	rm -rf /var/log/openvpn && mkdir -p /var/log/openvpn
@@ -121,7 +118,7 @@ END
 	rm -rf /var/www/openvpn && mkdir -p /var/www/openvpn
 	wget -qO /var/www/openvpn/index.html "$CONF_LINK"/index.html
 
-	local CLIENT_CONFIG=(client_tcp.ovpn client_udp.ovpn client_tcp_ohp.ovpn)
+	local CLIENT_CONFIG=(client_tcp.ovpn client_udp.ovpn)
 	local OPENVPN_SERVER_VERSION=$(openvpn --version | grep -w "^OpenVPN" | awk '{print $2}')
 	local ISP=$(wget -qO - http://ipwhois.app/json/ | jq -r '.isp')
 	local COUNTRY=$(wget -qO - http://ipwhois.app/json/ | jq -r '.country')
@@ -133,7 +130,7 @@ END
 		tee -a /var/www/openvpn/"$ovpn" < /etc/openvpn/ca.crt >/dev/null
 		echo "</ca>" >> /var/www/openvpn/"$ovpn"
 		sed -i "s/OVPN_VERSION/${OPENVPN_SERVER_VERSION}/;s/SERVER_ISP/${ISP}/;s/COUNTRY/${REGION}, ${COUNTRY}/;s/PUBLIC_IP/${PUBLIC_IP}/g;s/DATE/${DATE}/" /var/www/openvpn/"$ovpn"
-		sed -i "s/OVPN_TCP_PORT/${OVPN_TCP_PORT}/g;s/OVPN_UDP_PORT/${OVPN_UDP_PORT}/g;s/OHP_PORT_OVPN/${OHP_PORT_OVPN}/g;s/PRIVOXY_PORT/${PRIVOXY_PORT}/g" /var/www/openvpn/"$ovpn"
+		sed -i "s/OVPN_TCP_PORT/${OVPN_TCP_PORT}/g;s/OVPN_UDP_PORT/${OVPN_UDP_PORT}/g;s/PRIVOXY_PORT/${PRIVOXY_PORT}/g" /var/www/openvpn/"$ovpn"
 	done
 }
 _openvpn &>/dev/null &
@@ -156,9 +153,9 @@ _badvpn() {
 _badvpn &>/dev/null &
 
 _fail2ban() {
-	wget https://github.com/fail2ban/fail2ban/archive/master.zip
-	unzip master.zip && rm -f master.zip
-	cd fail2ban-master
+	wget -qO fail2ban.tar.gz "https://github.com/fail2ban/fail2ban/archive/refs/tags/1.1.0.tar.gz"
+	tar xzf fail2ban.tar.gz && rm -f fail2ban.tar.gz
+	cd fail2ban-1.1.0
 	python setup.py install
 	cp build/fail2ban.service /etc/systemd/system/fail2ban.service
 	cd /etc/fail2ban
@@ -166,22 +163,20 @@ _fail2ban() {
 	mv jail.conf jail.conf.bak
 	mv fail2ban.conf fail2ban.conf.bak
 	wget -qO jail.local "$CONF_LINK"/jail.local
-	cd $HOME && rm -rf fail2ban-master
+	cd $HOME && rm -rf fail2ban-1.1.0
 }
 _fail2ban &>/dev/null &
 
 apt-get install -y curl net-tools zip iptables-persistent dos2unix cmatrix\
- perl libnet-ssleay-perl openssl libauthen-pam-perl libpam-runtime libio-pty-perl apt-show-versions python shared-mime-info libxml-parser-perl \
+ perl libnet-ssleay-perl openssl libauthen-pam-perl libpam-runtime libio-pty-perl apt-show-versions python3 shared-mime-info libxml-parser-perl \
  dropbear squid privoxy ziproxy stunnel4
 
-rm -f master.zip
-rm -rf neofetch-master/
-wget -q https://github.com/dylanaraps/neofetch/archive/master.zip
-unzip -q master.zip && rm -f master.zip
-cd neofetch-master
+wget -qO neofetch.tar.gz "https://github.com/dylanaraps/neofetch/archive/refs/tags/7.1.0.tar.gz"
+tar xzf neofetch.tar.gz && rm -f neofetch.tar.gz
+cd neofetch-7.1.0
 make install
 cd $HOME
-rm -rf neofetch-master/
+rm -rf neofetch-7.1.0
 
 _configurations() {
 	sed -i "s/NO_START=.*/NO_START=0/;s/DROPBEAR_PORT=.*/DROPBEAR_PORT=${DROPBEAR_PORT}/;s/DROPBEAR_BANNER=.*/DROPBEAR_BANNER='\/etc\/banner'/" /etc/default/dropbear
@@ -211,19 +206,6 @@ END
 	wget -qO /etc/stunnel/stunnel.pem "$CONF_LINK"/stunnel.pem
 	sed -i "s/ENABLED=0/ENABLED=1/" /etc/default/stunnel4
 
-	rm -f ohpserver-linux32.zip
-	rm -f /usr/local/bin/ohpserver
-	wget -q https://github.com/lfasmpao/open-http-puncher/releases/download/0.1/ohpserver-linux32.zip
-	unzip -q ohpserver-linux32.zip && rm -f ohpserver-linux32.zip
-	chmod 755 ohpserver && mv ohpserver /usr/local/bin/
-
-	rm -f /etc/systemd/system/ohp-dropbear.service
-	wget -qO /etc/systemd/system/ohp-dropbear.service "$CONF_LINK"/ohp-dropbear.service
-	sed -i "s/OHP_PORT_DROPBEAR/${OHP_PORT_DROPBEAR}/;s/ZIPROXY_PORT/${ZIPROXY_PORT}/;s/DROPBEAR_PORT/${DROPBEAR_PORT}/" /etc/systemd/system/ohp-dropbear.service
-
-	rm -f /etc/systemd/system/ohp-ovpn.service
-	wget -qO /etc/systemd/system/ohp-ovpn.service "$CONF_LINK"/ohp-ovpn.service
-	sed -i "s/OHP_PORT_OVPN/${OHP_PORT_OVPN}/;s/ZIPROXY_PORT/${ZIPROXY_PORT}/;s/OVPN_TCP_PORT/${OVPN_TCP_PORT}/" /etc/systemd/system/ohp-ovpn.service
 
 	wget -qO /tmp/menu.txt "$CONF_LINK"/menu/menu.txt
 	while read -r FILE; do
@@ -269,7 +251,7 @@ _echo_info "Waiting for background processes to finish..."
 wait
 
 _echo_info "Firing up services..."
-SERVICE_NAME=(dropbear squid privoxy ziproxy nginx stunnel4 webmin openvpn-server@server_tcp openvpn-server@server_udp ohp-dropbear ohp-ovpn badvpn-udpgw fail2ban)
+SERVICE_NAME=(dropbear squid privoxy ziproxy nginx stunnel4 webmin openvpn-server@server_tcp openvpn-server@server_udp badvpn-udpgw fail2ban)
 systemctl daemon-reload
 for service in "${SERVICE_NAME[@]}"; do
 	systemctl enable "$service" &>/dev/null
